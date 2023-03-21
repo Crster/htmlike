@@ -1,0 +1,39 @@
+{
+  "name": "@crster/htmlike",
+  "version": "1.0.0",
+  "description": "html like template engine with added magic",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest index.test.js",
+    "start": "npm run build && node dist/index.js",
+    "deploy": "npm run build && np"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Crster/htmlike.git"
+  },
+  "files": [
+    "/dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "keywords": [
+    "template engine",
+    "express",
+    "html"
+  ],
+  "author": "Crster Dagadas",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Crster/htmlike/issues"
+  },
+  "homepage": "https://github.com/Crster/htmlike#readme",
+  "devDependencies": {
+    "jest": "^29.3.1",
+    "np": "^7.6.4",
+    "typescript": "^4.9.4"
+  }
+}
