@@ -1,6 +1,6 @@
 {
   "name": "@crster/htmlike",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "html like template engine with added magic",
   "main": "dist/index.js",
   "scripts": {
