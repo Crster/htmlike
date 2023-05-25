@@ -146,6 +146,17 @@ function render(template: ITemplate | string, input?: IInput): string {
     "gsi"
   );
   const codeBlockRegx = new RegExp("{([^{}\\r\\n]+?)}", "g");
+  const codeBlockExRegx = new RegExp(
+    "(?<!\\{)\\{\\{?([^{}\\r\\n]+?)\\}?\\}(?!\\})",
+    "g"
+  );
+  const scriptBlockRegx = new RegExp("<script\\s*>(.+)<\\/script>", "gsi");
+  const noscriptBlockRegx = new RegExp(
+    "<noscript\\s*>(.+)<\\/noscript>",
+    "gsi"
+  );
+  const styleBlockRegx = new RegExp("<style\\s*>(.+)<\\/style>", "gsi");
+  const preBlockRegx = new RegExp("<pre\\s*>(.+)<\\/pre>", "gsi");
 
   try {
     const chtml: ITemplate = {
@@ -165,31 +176,44 @@ function render(template: ITemplate | string, input?: IInput): string {
       chtml.template = template.template;
     }
 
-    return chtml.template
-      .replace(
-        slViewRegx,
-        (match: string, header: string): string => {
-          const withArgs = /(.*?)\((.*)\)/gi.exec(header);
-
-          if (withArgs) {
-            return renderView(
-              {
-                ...chtml,
-                template: match,
-                header: withArgs[1],
-                args: evaluate(`(${withArgs[2]})`, input),
-                body: "",
-              },
+    const renderWhitelist = (match: string, body: string): string => {
+      return match.replace(
+        codeBlockExRegx,
+        (match2: string, body2: string): string => {
+          if (match2.startsWith("{{") && match2.endsWith("}}")) {
+            return renderCode(
+              { ...chtml, template: match2, header: "", body: body2 },
               input
             );
           } else {
-            return renderView(
-              { ...chtml, template: match, header, body: "" },
-              input
-            );
+            return `{{"${body2}"}}`;
           }
         }
-      )
+      );
+    };
+
+    return chtml.template
+      .replace(slViewRegx, (match: string, header: string): string => {
+        const withArgs = /(.*?)\((.*)\)/gi.exec(header);
+
+        if (withArgs) {
+          return renderView(
+            {
+              ...chtml,
+              template: match,
+              header: withArgs[1],
+              args: evaluate(`(${withArgs[2]})`, input),
+              body: "",
+            },
+            input
+          );
+        } else {
+          return renderView(
+            { ...chtml, template: match, header, body: "" },
+            input
+          );
+        }
+      })
       .replace(
         mlViewRegx,
         (match: string, header: string, body: string): string => {
@@ -214,30 +238,27 @@ function render(template: ITemplate | string, input?: IInput): string {
           }
         }
       )
-      .replace(
-        slBlockRegx,
-        (match: string, header: string): string => {
-          const withArgs = /(.*?)\((.*)\)/gi.exec(header);
+      .replace(slBlockRegx, (match: string, header: string): string => {
+        const withArgs = /(.*?)\((.*)\)/gi.exec(header);
 
-          if (withArgs) {
-            return renderBlock(
-              {
-                ...chtml,
-                template: match,
-                header: withArgs[1],
-                args: evaluate(`(${withArgs[2]})`, input),
-                body: "",
-              },
-              input
-            );
-          } else {
-            return renderBlock(
-              { ...chtml, template: match, header, body: "" },
-              input
-            );
-          }
+        if (withArgs) {
+          return renderBlock(
+            {
+              ...chtml,
+              template: match,
+              header: withArgs[1],
+              args: evaluate(`(${withArgs[2]})`, input),
+              body: "",
+            },
+            input
+          );
+        } else {
+          return renderBlock(
+            { ...chtml, template: match, header, body: "" },
+            input
+          );
         }
-      )
+      })
       .replace(
         mlBlockRegx,
         (match: string, header: string, body: string): string => {
@@ -277,6 +298,10 @@ function render(template: ITemplate | string, input?: IInput): string {
           return renderFor({ ...chtml, template: match, header, body }, input);
         }
       )
+      .replace(scriptBlockRegx, renderWhitelist)
+      .replace(noscriptBlockRegx, renderWhitelist)
+      .replace(styleBlockRegx, renderWhitelist)
+      .replace(preBlockRegx, renderWhitelist)
       .replace(codeBlockRegx, (match: string, body: string): string => {
         return renderCode(
           { ...chtml, template: match, header: "", body },

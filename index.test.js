@@ -1,8 +1,22 @@
 const htmlike = require("./dist");
+const htmlMinifier = require("html-minifier");
+
+const minify = (htmlString) => {
+  return htmlMinifier.minify(htmlString, {
+    caseSensitive: true,
+    collapseWhitespace: true,
+    preserveLineBreaks: false,
+    removeComments: true,
+    removeTagWhitespace: true,
+    minifyCSS: true,
+    minifyJS: true,
+    minifyURLs: true
+  });
+};
 
 test("render hello world", () => {
   const result = htmlike.render("<p>Hello World</p>");
-  expect(result).toBe("<p>Hello World</p>");
+  expect(minify(result)).toBe(minify("<p>Hello World</p>"));
 });
 
 test("render hello world from variable", () => {
@@ -12,12 +26,12 @@ test("render hello world from variable", () => {
   };
 
   const result = htmlike.render("<p>{world} {hello}</p>", data);
-  expect(result).toBe(`<p>${data.world} ${data.hello}</p>`);
+  expect(minify(result)).toBe(minify(`<p>${data.world} ${data.hello}</p>`));
 });
 
 test("render calculation", () => {
   const result = htmlike.render("<p>1 + 2 = {2 + 1}</p>");
-  expect(result).toBe("<p>1 + 2 = 3</p>");
+  expect(minify(result)).toBe(minify("<p>1 + 2 = 3</p>"));
 });
 
 test("render list", () => {
@@ -34,10 +48,12 @@ test("render list", () => {
     data
   );
 
-  expect(result).toBe(
-    `<ul>${data.animals
-      .map((animal) => `<li>A ${animal.name} says ${animal.sound}<li>`)
-      .join("")}</ul>`
+  expect(minify(result)).toBe(
+    minify(
+      `<ul>${data.animals
+        .map((animal) => `<li>A ${animal.name} says ${animal.sound}<li>`)
+        .join("")}</ul>`
+    )
   );
 });
 
@@ -52,7 +68,7 @@ test("render condition", () => {
     data
   );
 
-  expect(result).toBe(`${data.name} is old`);
+  expect(minify(result)).toBe(minify(`${data.name} is old`));
 });
 
 test("render multiple condition", () => {
@@ -66,7 +82,7 @@ test("render multiple condition", () => {
     data
   );
 
-  expect(result).toBe("This is me");
+  expect(minify(result)).toBe(minify("This is me"));
 });
 
 test("render view", () => {
@@ -87,7 +103,9 @@ test("render view", () => {
     data
   );
 
-  expect(result).toBe("\r\n    <h1></h1>\r\n\r\n\r\n<p>Hi, Hello World</p>\r\nThis is a footer");
+  expect(minify(result)).toBe(
+    minify("<h1></h1><p>Hi, Hello World</p>This is a footer")
+  );
 });
 
 test("render view + args", () => {
@@ -97,7 +115,7 @@ test("render view + args", () => {
   };
 
   const template =
-    "<view {layout({ title: \"Earth\" })}><block {footer}>This is a footer</block><p>Hi, {world} {hello}</p></view>";
+    '<view {layout({ title: "Earth" })}><block {footer}>This is a footer</block><p>Hi, {world} {hello}</p></view>';
 
   const result = htmlike.render(
     {
@@ -108,7 +126,9 @@ test("render view + args", () => {
     data
   );
 
-  expect(result).toBe("\r\n    <h1>Earth</h1>\r\n\r\n\r\n<p>Hi, Hello World</p>\r\nThis is a footer");
+  expect(minify(result)).toBe(
+    minify("<h1>Earth</h1><p>Hi, Hello World</p>This is a footer")
+  );
 });
 
 test("render script", () => {
@@ -117,18 +137,49 @@ test("render script", () => {
     age: 30,
   };
 
-  const result = htmlike.render(`
+  const result = htmlike.render(
+    `
     <script>
-      let name = \`{age}$\{{name}\}\`;
-      
-      function setName(newName){
-        name = newName;
-      }
+      let name = "Amiel";
+      let fullName = ${"`${name}-{{name}}`"}
     </script>
-  `, data);
+  `,
+    data
+  );
 
-  expect(result).toContain("let name = `"+ data.age +"${"+ data.name +"}`");
-})
+  const isSame = minify(result) == minify(
+    `
+    <script>
+      let name = "Amiel";
+      let fullName = ${"`${name}-Crster`"}
+    </script>
+  `
+  )
+
+  console.log(isSame)
+
+  expect(minify(result)).toBe(
+    minify(
+      `
+      <script>
+        let name = "Amiel";
+        let fullName = ${"`${name}-Crster`"}
+      </script>
+    `
+    )
+  );
+});
+
+test("render style", () => {
+  const data = {
+    name: "Crster",
+    age: 30,
+  };
+
+  const result = htmlike.render("<style>body { color: red }</style>", data);
+
+  expect(minify(result)).toBe(minify("<style>body { color: red }</style>"));
+});
 
 test("render subview", () => {
   const data = {
@@ -148,5 +199,9 @@ test("render subview", () => {
     data
   );
 
-  expect(result).toBe("\r\n    <h1></h1>\r\n\r\n\r\n<p>Hi, Hello World</p>\r\nThis is a footer<p>This is a subview</p>");
-})
+  expect(minify(result)).toBe(
+    minify(
+      "<h1></h1><p>Hi, Hello World</p>This is a footer<p>This is a subview</p>"
+    )
+  );
+});
