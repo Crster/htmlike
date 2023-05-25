@@ -10,7 +10,7 @@ const minify = (htmlString) => {
     removeTagWhitespace: true,
     minifyCSS: true,
     minifyJS: true,
-    minifyURLs: true
+    minifyURLs: true,
   });
 };
 
@@ -156,6 +156,38 @@ test("render script", () => {
       </script>
     `
     )
+  );
+});
+
+test("render script with throw", () => {
+  const data = {
+    message: "Oh snap!",
+  };
+
+  const result = htmlike.render(`
+    <script>
+      promises
+        .catch(err => { throw new Error("On no!") })
+        .then(result => ({ ...result }))
+        .then(result => ({ ...result, part: 2 }))
+        .then(result => { return { ...result } })
+        .then(result => { return { ...result, part: 4 } })
+        .catch(err => { throw new Error("{message}{{message}}{message}") })
+    </script>
+  `, data);
+
+  expect(minify(result)).toBe(
+    minify(`
+      <script>
+        promises
+          .catch(err => { throw new Error("On no!") })
+          .then(result => ({ ...result }))
+          .then(result => ({ ...result, part: 2 }))
+          .then(result => { return { ...result } })
+          .then(result => { return { ...result, part: 4 } })
+          .catch(err => { throw new Error("{message}Oh snap!{message}") })
+      </script>
+  `)
   );
 });
 

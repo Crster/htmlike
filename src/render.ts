@@ -185,8 +185,10 @@ function render(template: ITemplate | string, input?: IInput): string {
               { ...chtml, template: match2, header: "", body: body2 },
               input
             );
+          } else if (body2.includes('"')) {
+            return "{{" + "'" + body2 + "'" + "}}";
           } else {
-            return `{{"${body2}"}}`;
+            return "{{" + '"' + body2 + '"' + "}}";
           }
         }
       );
