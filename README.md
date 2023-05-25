@@ -21,6 +21,11 @@
 
 ## Quick Start
 
+### Installation
+```
+npm install @crster/htmlike
+```
+
 ### nodejs
 ```js
     var htmlike = require('@crster/htmlike');
@@ -48,6 +53,15 @@
 <p>One + Two = {1 + 2}</p>
 ```
 
+## Escape Expression
+```html
+<p>use this {{"Hello"}}</p>
+
+// will be rendered to
+
+<p>use this {Hello}</p>
+```
+
 ## Render List
 ```html
 <for {user of users}>
@@ -71,6 +85,35 @@
         <p>This is switch default</p>
     </case>
 </switch>
+
+// To render if else like statement
+<switch {!!users}>
+    <case {true}>
+        <p>User is not null</p>
+    </case>
+    <case {false}>
+        <p>User is null</p>
+    </case>
+</switch>
+```
+
+## Whitelisted tags
+`<script>`, `<noscript>`, `<style>` and `<pre>` are whitelisted.
+meaning braces `{}` will work as usual. to render the expression inside you must use two braces `{{}}`
+
+```html
+data is { name: "Doe" }
+
+<script>
+  let name = "John";
+  let alias = `${name}-{{name}}`;
+</script>
+
+// will render to
+<script>
+  let name = "John";
+  let alias = `${name}-Doe`;
+</script>
 ```
 
 ## Render Layout + Extending Block

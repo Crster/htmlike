@@ -147,17 +147,6 @@ test("render script", () => {
     data
   );
 
-  const isSame = minify(result) == minify(
-    `
-    <script>
-      let name = "Amiel";
-      let fullName = ${"`${name}-Crster`"}
-    </script>
-  `
-  )
-
-  console.log(isSame)
-
   expect(minify(result)).toBe(
     minify(
       `
