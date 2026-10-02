@@ -202,6 +202,34 @@ test("render style", () => {
   expect(minify(result)).toBe(minify("<style>body { color: red }</style>"));
 });
 
+test("escapes html special characters by default", () => {
+  const data = {
+    name: "<img src=x onerror=alert(1)>",
+  };
+
+  const result = htmlike.render("<p>{name}</p>", data);
+  expect(result).toBe("<p>&lt;img src=x onerror=alert(1)&gt;</p>");
+});
+
+test("renders raw unescaped html with triple braces", () => {
+  const data = {
+    name: "<b>bold</b>",
+  };
+
+  const result = htmlike.render("<p>{{{name}}}</p>", data);
+  expect(result).toBe("<p><b>bold</b></p>");
+});
+
+test("blocks code injection via malicious input keys", () => {
+  const data = {
+    "x, y=(globalThis.pwned = true)": "safe",
+  };
+
+  const result = htmlike.render("<p>{x}</p>", data);
+  expect(result).toBe("<p></p>");
+  expect(globalThis.pwned).toBeUndefined();
+});
+
 test("render subview", () => {
   const data = {
     world: "Hello",
@@ -225,4 +253,75 @@ test("render subview", () => {
       "<h1></h1><p>Hi, Hello World</p>This is a footer<p>This is a subview</p>"
     )
   );
+});
+
+test("render two sibling for loops independently", () => {
+  const data = { a: [1, 2], b: [3, 4] };
+
+  const result = htmlike.render(
+    "<for {x of a}>A:{x} </for><for {x of b}>B:{x} </for>",
+    data
+  );
+
+  expect(minify(result)).toBe(minify("A:1 A:2 B:3 B:4 "));
+});
+
+test("render two sibling switch blocks independently", () => {
+  const result = htmlike.render(
+    '<switch {1}><case {1}>one</case><case {2}>two</case></switch>-<switch {2}><case {1}>one</case><case {2}>two</case></switch>'
+  );
+
+  expect(result).toBe("one-two");
+});
+
+test("render nested for loops", () => {
+  const data = {
+    groups: [
+      { items: [1, 2] },
+      { items: [3, 4] },
+    ],
+  };
+
+  const result = htmlike.render(
+    "<for {g of groups}><for {x of g.items}>{x}</for>|</for>",
+    data
+  );
+
+  expect(result).toBe("12|34|");
+});
+
+test("render switch nested inside a case body", () => {
+  const result = htmlike.render(
+    `<switch {1}><case {1}><switch {2}><case {1}>inner-one</case><case {2}>inner-two</case></switch></case><case {2}>outer-two</case></switch>`
+  );
+
+  expect(result).toBe("inner-two");
+});
+
+test("render switch nested inside a for loop with correct per-iteration scope", () => {
+  const data = { items: [1, 2, 3, 4] };
+
+  const result = htmlike.render(
+    `<for {n of items}><switch {n % 2}><case {0}>{n}:even</case><case {1}>{n}:odd</case></switch></for>`,
+    data
+  );
+
+  expect(result).toBe("1:odd2:even3:odd4:even");
+});
+
+test("render nested named blocks inside a view/layout", () => {
+  const template =
+    "<view {layout}><block {body}>Outer-Start<block {inner}>Inner-Content</block>Outer-End</block></view>";
+
+  const result = htmlike.render(
+    {
+      currentWorkingDirectory: "./components",
+      defaultFileExtension: "html",
+      template,
+    },
+    {}
+  );
+
+  expect(result).not.toMatch(/<<|base64|header=/);
+  expect(minify(result)).toContain(minify("Outer-StartOuter-End"));
 });
